@@ -47,6 +47,47 @@
             content: "Any Date";
             color: #9ca3af;
         }
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+            }
+            .grid-cols-1, .md:grid-cols-2, .lg:grid-cols-3, .lg:grid-cols-5 {
+                grid-template-columns: 1fr;
+            }
+            .h-20 {
+                height: auto;
+                flex-direction: column;
+                padding-top: 1rem;
+                padding-bottom: 1rem;
+            }
+            .flex-items-center {
+                flex-direction: column;
+                text-align: center;
+            }
+            .flex-items-center > svg {
+                margin-bottom: 0.5rem;
+            }
+            .flex-items-center > h1 {
+                font-size: 1.5rem;
+            }
+            .flex.items-center.gap-2 {
+                width: 100%;
+                justify-content: space-around;
+                margin-top: 1rem;
+            }
+            .px-4.py-2 {
+                flex: 1;
+                margin: 0 0.25rem;
+            }
+            .modal-content {
+                max-width: 95%;
+                padding: 1rem;
+            }
+            .modal-content .p-6, .modal-content .p-8 {
+                padding: 1rem;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -75,7 +116,7 @@
 
     <!-- Main Content -->
     <main class="container mx-auto p-4 sm:p-6 lg:p-8">
-        
+
         <div class="mb-8 p-6 bg-white rounded-lg shadow-sm">
              <h2 class="text-xl font-semibold text-gray-800 mb-2">A Real-Time, Collaborative Case Monitor</h2>
              <p class="text-gray-600">This dashboard provides a centralized, real-time view of animal cruelty cases across Florida, powered by user submissions and a live database. Use the "Submit a Case" button to add new cases and contribute to this public awareness effort. All submissions are visible to all users instantly.</p>
@@ -93,7 +134,7 @@
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Case Map</h3>
             <div id="map"></div>
         </div>
-        
+
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-8">
             <div class="lg:col-span-3 bg-white p-6 rounded-lg shadow-sm"><canvas id="county-chart"></canvas></div>
             <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm"><canvas id="status-chart"></canvas></div>
@@ -107,15 +148,15 @@
                 <div><label for="date-filter" class="block text-sm font-medium text-gray-700">Incident After</label><input type="date" id="date-filter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-3 text-gray-500"></div>
             </div>
         </div>
-        
+
         <div id="loading-spinner" class="text-center py-12"><div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32 mx-auto"></div><h3 class="text-2xl font-semibold text-gray-500 mt-4">Loading Cases...</h3></div>
         <div id="case-listings" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden"></div>
         <div id="no-results" class="hidden text-center py-12"><h3 class="text-2xl font-semibold text-gray-500">No Cases Found</h3><p id="no-results-message" class="text-gray-400 mt-2">The database is currently empty or no cases match your filters.</p></div>
     </main>
-    
+
     <!-- Modals -->
     <div id="modal-container"></div>
-    
+
     <!-- Toast Notification -->
     <div id="toast" class="toast fixed bottom-5 right-5 bg-green-600 text-white py-3 px-5 rounded-lg shadow-xl">
         <p id="toast-message"></p>
@@ -125,28 +166,35 @@
     <datalist id="county-list"></datalist>
 
     <script type="module">
-        import { firebaseConfig } from './firebaseConfig.js';
+        // Import Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Import Firebase Configuration from a separate file
+        // This file will be created by the GitHub Actions workflow using a secret.
+        import { firebaseConfig } from './firebaseConfig.js';
+
 
         // --- GLOBAL DECLARATIONS ---
         const countyCoordinates = { 'Alachua': [29.6516, -82.3248], 'Baker': [30.3269, -82.2858], 'Bay': [30.1766, -85.6602], 'Bradford': [29.9538, -82.1192], 'Brevard': [28.5383, -80.6622], 'Broward': [26.1224, -80.1373], 'Calhoun': [30.4468, -85.1221], 'Charlotte': [26.9079, -82.0834], 'Citrus': [28.8486, -82.4984], 'Clay': [29.9863, -81.7789], 'Collier': [26.1420, -81.7948], 'Columbia': [30.1897, -82.6393], 'DeSoto': [27.2178, -81.8545], 'Dixie': [29.5319, -83.1118], 'Duval': [30.3322, -81.6557], 'Escambia': [30.4213, -87.2169], 'Flagler': [29.4758, -81.2095], 'Franklin': [29.7435, -84.9768], 'Gadsden': [30.5846, -84.5710], 'Gilchrist': [29.6897, -82.8235], 'Glades': [26.9634, -81.3320], 'Gulf': [29.6635, -85.2938], 'Hamilton': [30.5188, -82.9437], 'Hardee': [27.5453, -81.8023], 'Hendry': [26.7559, -81.2581], 'Hernando': [28.5350, -82.3815], 'Highlands': [27.4914, -81.4601], 'Hillsborough': [27.9506, -82.4572], 'Holmes': [30.7713, -85.8455], 'Indian River': [27.6389, -80.3973], 'Jackson': [30.7752, -85.2341], 'Jefferson': [30.5391, -83.8710], 'Lafayette': [30.0619, -83.2504], 'Lake': [28.8033, -81.8762], 'Lee': [26.6406, -81.8721], 'Leon': [30.4383, -84.2807], 'Levy': [29.1866, -82.8718], 'Liberty': [30.2224, -84.9566], 'Madison': [30.4688, -83.4110], 'Manatee': [27.4989, -82.5748], 'Marion': [29.1872, -82.1401], 'Martin': [27.1995, -80.2520], 'Miami-Dade': [25.7617, -80.1918], 'Monroe': [24.5551, -81.7800], 'Nassau': [30.6272, -81.6904], 'Okaloosa': [30.4049, -86.5919], 'Okeechobee': [27.2431, -80.8281], 'Orange': [28.5383, -81.3792], 'Osceola': [28.2917, -81.2914], 'Palm Beach': [26.7056, -80.0364], 'Pasco': [28.2256, -82.4065], 'Pinellas': [27.7630, -82.6401], 'Polk': [28.0461, -81.7145], 'Putnam': [29.6480, -81.6373], 'St. Johns': [29.8947, -81.3145], 'St. Lucie': [27.4467, -80.3256], 'Santa Rosa': [30.4180, -87.2178], 'Sarasota': [27.3364, -82.5307], 'Seminole': [28.5714, -81.3328], 'Sumter': [28.6983, -82.0493], 'Suwannee': [30.2916, -82.9365], 'Taylor': [30.0519, -83.5826], 'Union': [30.0158, -82.3418], 'Volusia': [29.0280, -81.3087], 'Wakulla': [30.1705, -84.3802], 'Walton': [30.4216, -86.1013], 'Washington': [30.7818, -85.5505] };
         const floridaCounties = Object.keys(countyCoordinates);
-        const appId = 'florida-animal-cruelty-tracker';
-        
+        // Using a predefined app ID for the public data path.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'florida-animal-cruelty-tracker';
+
+
         let app, auth, db, casesCollection;
         let allCases = [];
         let countyChart, statusChart;
         let map;
         let markerLayer = L.layerGroup();
 
-        // FIX: Declare DOM element variables in the global scope
+        // DOM element variables
         let loadingSpinner, caseListings, noResultsDiv, noResultsMessage, searchInput, countyFilter, statusFilter, dateFilter, modalContainer, reportCaseBtn, submitCaseBtn, countyListDatalist, toast, toastMessage;
 
         // --- UTILITY FUNCTIONS ---
         const escapeHTML = (str) => {
-            if (!str) return '';
+            if (typeof str !== 'string') return ''; // Ensure input is a string
             return str.replace(/[&<>"']/g, (match) => {
                 switch (match) {
                     case '&': return '&amp;';
@@ -160,7 +208,10 @@
         };
 
         const showToast = (message, isError = false) => {
-            if (!toast || !toastMessage) return;
+            if (!toast || !toastMessage) {
+                console.warn("Toast elements not found, cannot show toast.");
+                return;
+            }
             toastMessage.textContent = message;
             toast.className = `toast fixed bottom-5 right-5 text-white py-3 px-5 rounded-lg shadow-xl ${isError ? 'bg-red-600' : 'bg-green-600'}`;
             toast.classList.add('show');
@@ -171,51 +222,113 @@
 
         // --- MAIN APP FUNCTIONS ---
         async function initializeAppAndData() {
-             if (!firebaseConfig || !firebaseConfig.apiKey) {
-                loadingSpinner.innerHTML = `<div class="text-red-600 bg-red-100 border border-red-400 rounded-lg p-4 max-w-2xl mx-auto"><h3 class="font-bold text-lg">Configuration Error</h3><p class="mt-2">Firebase configuration is missing or invalid. The live site uses secrets for configuration.</p></div>`;
+            console.log("Initializing app and data...");
+            
+            // Check if firebaseConfig is available
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                const errorMessage = `
+                    <div class="text-red-600 bg-red-100 border border-red-400 rounded-lg p-4 max-w-2xl mx-auto">
+                        <h3 class="font-bold text-lg">Configuration Error</h3>
+                        <p class="mt-2">Firebase configuration is missing or invalid. Please ensure firebaseConfig.js is correctly generated and contains your actual project details.</p>
+                    </div>
+                `;
+                if (loadingSpinner) {
+                    loadingSpinner.innerHTML = errorMessage;
+                } else {
+                    document.body.innerHTML = errorMessage; // Fallback if spinner not yet loaded
+                }
+                console.error("Firebase configuration missing or invalid.");
                 return;
             }
+
             try {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
-                await signInAnonymously(auth);
+                console.log("Firebase initialized successfully.");
+
+                // Authenticate user
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                    console.log("Signed in with custom token.");
+                } else {
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously.");
+                }
+
                 const user = auth.currentUser;
                 if (user) {
                     const casesCollectionPath = `/artifacts/${appId}/public/data/cases`;
                     casesCollection = collection(db, casesCollectionPath);
+                    console.log(`Listening to cases collection: ${casesCollectionPath}`);
                     setupRealtimeListener();
                 } else {
-                     loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Authentication failed. Unable to load cases.</p>';
+                    if (loadingSpinner) {
+                        loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Authentication failed. Unable to load cases.</p>';
+                    }
+                    console.error("Firebase authentication failed. No user object.");
                 }
             } catch (error) {
-                console.error("Firebase Initialization Error:", error);
-                loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Error connecting to the database.</p>';
+                console.error("Firebase Initialization or Authentication Error:", error);
+                if (loadingSpinner) {
+                    loadingSpinner.innerHTML = `<p class="text-red-500 font-semibold">Error connecting to the database: ${escapeHTML(error.message)}</p>`;
+                }
+                showToast("Error initializing app or connecting to database.", true);
             }
         }
-        
+
         function setupRealtimeListener() {
+            if (!casesCollection) {
+                console.error("Cases collection not initialized.");
+                if (loadingSpinner) {
+                    loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Error: Cases collection not ready for listener.</p>';
+                }
+                return;
+            }
+
             onSnapshot(casesCollection, (snapshot) => {
+                console.log("Received data update from Firestore.");
                 allCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                allCases.sort((a, b) => new Date(b.incidentDate) - new Date(a.incidentDate));
-                loadingSpinner.classList.add('hidden');
+                // Ensure incidentDate is a string for consistent comparison in applyFilters
+                allCases.forEach(c => {
+                    if (c.incidentDate && c.incidentDate.toDate) { // Check if it's a Firestore Timestamp
+                        c.incidentDate = c.incidentDate.toDate().toISOString().split('T')[0];
+                    }
+                });
+                allCases.sort((a, b) => new Date(b.incidentDate) - new Date(a.incidentDate)); // Sort by date descending
+                
+                if (loadingSpinner) {
+                    loadingSpinner.classList.add('hidden');
+                }
                 populateFilters();
-                applyFilters();
+                applyFilters(); // Re-apply filters to update UI with new data
             }, (error) => {
                 console.error("Error listening to database:", error);
-                loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Error fetching real-time data.</p>';
+                if (loadingSpinner) {
+                    loadingSpinner.innerHTML = `<p class="text-red-500 font-semibold">Error fetching real-time data: ${escapeHTML(error.message)}</p>`;
+                }
+                showToast("Error fetching real-time data.", true);
             });
         }
-        
+
         function renderCases(casesToRender) {
+            if (!caseListings || !noResultsDiv || !noResultsMessage) {
+                console.warn("Case listing elements not found, cannot render cases.");
+                return;
+            }
+
             caseListings.innerHTML = '';
             const hasActiveFilters = searchInput.value || countyFilter.value || statusFilter.value || dateFilter.value;
+            
             noResultsDiv.classList.toggle('hidden', casesToRender.length > 0);
-            if(allCases.length === 0) {
+            if(allCases.length === 0 && !hasActiveFilters) {
                  noResultsMessage.textContent = 'The database is currently empty. Be the first to submit a case!';
-            } else if (hasActiveFilters) {
+            } else if (casesToRender.length === 0 && hasActiveFilters) {
                  noResultsMessage.textContent = 'No cases match your current filter criteria.';
+            } else {
+                noResultsMessage.textContent = ''; // Clear message if results are shown
             }
+
             caseListings.classList.toggle('hidden', casesToRender.length === 0);
 
             casesToRender.forEach(caseData => {
@@ -232,7 +345,7 @@
                         <h3 class="text-xl font-bold text-gray-800 mt-2">${escapeHTML(caseData.defendant)}</h3>
                         <p class="text-sm text-gray-600">${caseData.caseNumber ? `Case #${escapeHTML(caseData.caseNumber)}`: '&nbsp;'}</p>
                         <div class="mt-4 border-t border-gray-200 pt-4">
-                            <p class="text-sm"><strong class="font-medium text-gray-700">Incident:</strong> ${escapeHTML(new Date(caseData.incidentDate).toLocaleDateString(undefined, { timeZone: 'UTC' }))}</p>
+                            <p class="text-sm"><strong class="font-medium text-gray-700">Incident:</strong> ${escapeHTML(new Date(caseData.incidentDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC' }))}</p>
                             <p class="text-sm"><strong class="font-medium text-gray-700">Animal:</strong> ${escapeHTML(caseData.animalType)}</p>
                         </div>
                     </div>
@@ -243,47 +356,69 @@
                 `;
                 caseListings.appendChild(card);
             });
+            console.log(`Rendered ${casesToRender.length} cases.`);
         }
-        
+
         function populateFilters() {
+            if (!countyFilter || !statusFilter) {
+                console.warn("Filter elements not found, cannot populate filters.");
+                return;
+            }
             const counties = [...new Set(allCases.map(c => c.county))];
             const statuses = [...new Set(allCases.map(c => c.status))];
             const repopulateSelect = (selectEl, options) => {
                 const currentValue = selectEl.value;
                 selectEl.innerHTML = '<option value="">All</option>';
                 options.sort().forEach(opt => {
-                     const option = document.createElement('option');
-                     option.value = opt;
-                     option.textContent = opt;
-                     selectEl.appendChild(option);
+                     if (opt) { // Ensure option is not null/empty string
+                         const option = document.createElement('option');
+                         option.value = opt;
+                         option.textContent = opt;
+                         selectEl.appendChild(option);
+                     }
                 });
                 selectEl.value = currentValue;
             };
             repopulateSelect(countyFilter, counties);
             repopulateSelect(statusFilter, statuses);
+            console.log("Filters populated.");
         }
-        
+
         function applyFilters() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const selectedCounty = countyFilter.value;
-            const selectedStatus = statusFilter.value;
-            const selectedDate = dateFilter.value;
+            if (!searchInput || !countyFilter || !statusFilter || !dateFilter) {
+                console.warn("Filter input elements not found, cannot apply filters.");
+                return;
+            }
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const selectedCounty = countyFilter.value.trim();
+            const selectedStatus = statusFilter.value.trim();
+            const selectedDate = dateFilter.value; //YYYY-MM-DD format
+
             const filteredCases = allCases.filter(c => {
                 const s = c.defendant?.toLowerCase() || '';
                 const cn = c.caseNumber?.toLowerCase() || '';
                 const matchesSearch = s.includes(searchTerm) || cn.includes(searchTerm);
                 const matchesCounty = !selectedCounty || c.county === selectedCounty;
                 const matchesStatus = !selectedStatus || c.status === selectedStatus;
-                const matchesDate = !selectedDate || c.incidentDate >= selectedDate;
+                
+                // Compare incident dates
+                const incidentDate = c.incidentDate; // Already YYYY-MM-DD string
+                const matchesDate = !selectedDate || (incidentDate && incidentDate >= selectedDate);
+                
                 return matchesSearch && matchesCounty && matchesStatus && matchesDate;
             });
             renderCases(filteredCases);
             updateCharts(filteredCases);
             updateStats();
             updateMap(filteredCases);
+            console.log("Filters applied, rendering cases.");
         }
 
         function openModal(identifier, type) {
+            if (!modalContainer) {
+                console.warn("Modal container not found, cannot open modal.");
+                return;
+            }
             let modalHTML = '';
             const baseModal = (title, content, footer) => `
                 <div id="modal-backdrop" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
@@ -299,9 +434,14 @@
                  modalHTML = baseModal('Submit a New Case', `<form id="submit-case-form" class="space-y-4" novalidate><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="defendant" class="block text-sm font-medium">Defendant Name*</label><input type="text" id="defendant" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="county" class="block text-sm font-medium">County*</label><input type="text" id="county" required list="county-list" class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="caseNumber" class="block text-sm font-medium">Case Number</label><input type="text" id="caseNumber" class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="incidentDate" class="block text-sm font-medium">Incident Date*</label><input type="date" id="incidentDate" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div></div><div><label for="animalType" class="block text-sm font-medium">Animal Type(s)*</label><input type="text" id="animalType" placeholder="e.g., Dogs, Cats" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="summary" class="block text-sm font-medium">Summary*</label><textarea id="summary" rows="3" required class="mt-1 w-full border-gray-300 rounded-md p-3"></textarea></div><div><label for="source" class="block text-sm font-medium">Source Link*</label><input type="url" id="source" required placeholder="https://" class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div id="submit-error" class="text-red-600 text-sm hidden font-semibold"></div><p class="text-xs text-gray-500">*Required field.</p></form>`, `<button id="form-submit-btn" type="submit" form="submit-case-form" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Submit Case</button>`);
             } else if (type === 'details') {
                 const caseData = allCases.find(c => c.id === identifier);
-                if (!caseData) return;
+                if (!caseData) {
+                    console.error(`Case with ID ${identifier} not found.`);
+                    showToast("Case details not found.", true);
+                    return;
+                }
                  const chargesHTML = Array.isArray(caseData.charges) && caseData.charges.length > 0 ? caseData.charges.map(charge => `<li>${escapeHTML(charge)}</li>`).join('') : '<li>No charges listed.</li>';
-                 const formattedDate = caseData.incidentDate ? new Date(caseData.incidentDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : 'N/A';
+                 // Ensure incidentDate is a valid date for display
+                 const formattedDate = caseData.incidentDate ? new Date(caseData.incidentDate + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : 'N/A';
                  modalHTML = baseModal('Case Details', 
                     `<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-gray-700">
                         <div><strong class="font-semibold text-gray-900">Case #:</strong> ${escapeHTML(caseData.caseNumber) || 'N/A'}</div>
@@ -318,15 +458,36 @@
                 );
             }
             modalContainer.innerHTML = modalHTML;
-            modalContainer.querySelector('.close-modal-btn').addEventListener('click', closeModal);
-            modalContainer.querySelector('#modal-backdrop')?.addEventListener('click', (e) => { if(e.target.id === 'modal-backdrop') closeModal() });
-            if (type === 'submit') {
-                document.getElementById('submit-case-form').addEventListener('submit', handleCaseSubmit);
+            const closeModalBtn = modalContainer.querySelector('.close-modal-btn');
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', closeModal);
+            } else {
+                console.warn("Close modal button not found for current modal.");
             }
+            const modalBackdrop = modalContainer.querySelector('#modal-backdrop');
+            if (modalBackdrop) {
+                modalBackdrop.addEventListener('click', (e) => { 
+                    if(e.target.id === 'modal-backdrop') closeModal();
+                });
+            }
+            if (type === 'submit') {
+                const submitForm = document.getElementById('submit-case-form');
+                if (submitForm) {
+                    submitForm.addEventListener('submit', handleCaseSubmit);
+                } else {
+                    console.warn("Submit case form not found.");
+                }
+            }
+            console.log(`Opened modal of type: ${type}`);
         }
 
         function closeModal() {
-            modalContainer.innerHTML = '';
+            if (modalContainer) {
+                modalContainer.innerHTML = '';
+                console.log("Modal closed.");
+            } else {
+                console.warn("Modal container not found, cannot close modal.");
+            }
         }
 
         async function handleCaseSubmit(event) {
@@ -335,98 +496,174 @@
             const submitBtn = document.getElementById('form-submit-btn');
             const errorDiv = document.getElementById('submit-error');
             const countyInput = form.county;
-            if (!floridaCounties.includes(countyInput.value)) {
+
+            if (!countyInput || !form || !submitBtn || !errorDiv) {
+                console.error("Form elements missing for submission.");
+                showToast("An internal error occurred with the form.", true);
+                return;
+            }
+
+            // Client-side validation for county
+            if (!floridaCounties.includes(countyInput.value.trim())) {
                 errorDiv.textContent = 'Please select a valid Florida county from the list.';
                 errorDiv.classList.remove('hidden');
                 countyInput.focus();
                 countyInput.classList.add('border-red-500');
+                showToast("Invalid county selected.", true);
                 return;
             } else {
                  countyInput.classList.remove('border-red-500');
             }
+
             if(!form.checkValidity()){
                 errorDiv.textContent = 'Please fill out all required fields correctly.';
                 errorDiv.classList.remove('hidden');
-                form.reportValidity();
+                form.reportValidity(); // This will trigger browser's native validation messages
+                showToast("Please fill out all required fields.", true);
                 return;
             }
+
             submitBtn.disabled = true;
             submitBtn.innerHTML = 'Submitting...';
             errorDiv.classList.add('hidden');
+
             const newCase = {
-                defendant: form.defendant.value.trim(), county: form.county.value.trim(),
-                caseNumber: form.caseNumber.value.trim() || null, incidentDate: form.incidentDate.value,
-                animalType: form.animalType.value.trim(), summary: form.summary.value.trim(),
-                source: form.source.value.trim(), status: 'Pending Review', isUserSubmitted: true,
-                createdAt: serverTimestamp(), charges: []
+                defendant: form.defendant.value.trim(),
+                county: form.county.value.trim(),
+                caseNumber: form.caseNumber.value.trim() || null,
+                incidentDate: form.incidentDate.value, //YYYY-MM-DD string
+                animalType: form.animalType.value.trim(),
+                summary: form.summary.value.trim(),
+                source: form.source.value.trim(),
+                status: 'Pending Review', // Default status for user submitted cases
+                isUserSubmitted: true,
+                createdAt: serverTimestamp(),
+                charges: [] // Initialize as empty array, can be updated later by admins
             };
+            
+            console.log("Attempting to submit new case:", newCase);
+
             try {
+                if (!casesCollection) {
+                    throw new Error("Firestore cases collection not initialized.");
+                }
                 await addDoc(casesCollection, newCase);
                 closeModal();
                 showToast("Case submitted successfully!");
+                console.log("Case submitted successfully to Firestore.");
             } catch (error) {
                 console.error("Error submitting case:", error);
-                errorDiv.textContent = 'Submission failed. Please try again.';
+                errorDiv.textContent = `Submission failed: ${escapeHTML(error.message)}. Please try again.`;
                 errorDiv.classList.remove('hidden');
+                showToast("Case submission failed.", true);
+            } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit Case';
             }
         }
-        
+
         function updateStats() {
+            const totalCasesEl = document.getElementById('total-cases-stat');
+            const pendingCasesEl = document.getElementById('pending-cases-stat');
+            const countyCountEl = document.getElementById('county-count-stat');
+
+            if (!totalCasesEl || !pendingCasesEl || !countyCountEl) {
+                console.warn("Statistics elements not found, cannot update stats.");
+                return;
+            }
+
             const totalCases = allCases.length;
             const pendingStatuses = ['Pending Trial', 'Awaiting Plea', 'Pending Review', 'Arrested'];
             const pendingCases = allCases.filter(c => pendingStatuses.includes(c.status)).length;
-            const countyCount = new Set(allCases.map(c => c.county)).size;
-            document.getElementById('total-cases-stat').textContent = totalCases;
-            document.getElementById('pending-cases-stat').textContent = pendingCases;
-            document.getElementById('county-count-stat').textContent = countyCount;
+            const countyCount = new Set(allCases.map(c => c.county).filter(county => county && county.trim() !== '')).size; // Filter out empty strings/nulls
+
+            totalCasesEl.textContent = totalCases;
+            pendingCasesEl.textContent = pendingCases;
+            countyCountEl.textContent = countyCount;
+            console.log("Statistics updated.");
         }
-        
+
         function createCharts() {
             Chart.defaults.font.family = "'Inter', sans-serif";
-            const countyCtx = document.getElementById('county-chart').getContext('2d');
-            countyChart = new Chart(countyCtx, { type: 'bar', data: { labels: [], datasets: [{ label: '# of Cases', data: [], backgroundColor: 'rgba(220, 38, 38, 0.6)', borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 1 }] }, options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Cases by County (Top 10)' } } } });
-            const statusCtx = document.getElementById('status-chart').getContext('2d');
-            statusChart = new Chart(statusCtx, { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#FBBF24', '#3B82F6', '#16A34A', '#6366F1', '#EC4899', '#8B5CF6'] }] }, options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Case Status Distribution' } } } });
+            const countyCtx = document.getElementById('county-chart');
+            const statusCtx = document.getElementById('status-chart');
+
+            if (!countyCtx || !statusCtx) {
+                console.warn("Chart canvases not found, cannot create charts.");
+                return;
+            }
+
+            countyChart = new Chart(countyCtx.getContext('2d'), { type: 'bar', data: { labels: [], datasets: [{ label: '# of Cases', data: [], backgroundColor: 'rgba(220, 38, 38, 0.6)', borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 1 }] }, options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Cases by County (Top 10)' } } } });
+            statusChart = new Chart(statusCtx.getContext('2d'), { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#FBBF24', '#3B82F6', '#16A34A', '#6366F1', '#EC4899', '#8B5CF6'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Case Status Distribution' } } } });
+            console.log("Charts created.");
         }
-        
+
         function updateCharts(chartCases) {
-            if (!countyChart || !statusChart) return;
-            const countyCounts = chartCases.reduce((acc, c) => { acc[c.county] = (acc[c.county] || 0) + 1; return acc; }, {});
+            if (!countyChart || !statusChart) {
+                console.warn("Charts not initialized, cannot update charts.");
+                return;
+            }
+            const countyCounts = chartCases.reduce((acc, c) => { 
+                if (c.county && c.county.trim() !== '') {
+                    acc[c.county] = (acc[c.county] || 0) + 1; 
+                }
+                return acc; 
+            }, {});
             const sortedCounties = Object.entries(countyCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
             countyChart.data.labels = sortedCounties.map(entry => entry[0]);
             countyChart.data.datasets[0].data = sortedCounties.map(entry => entry[1]);
             countyChart.update();
-            const statusCounts = chartCases.reduce((acc, c) => { acc[c.status] = (acc[c.status] || 0) + 1; return acc; }, {});
+
+            const statusCounts = chartCases.reduce((acc, c) => { 
+                if (c.status && c.status.trim() !== '') {
+                    acc[c.status] = (acc[c.status] || 0) + 1; 
+                }
+                return acc; 
+            }, {});
             statusChart.data.labels = Object.keys(statusCounts);
             statusChart.data.datasets[0].data = Object.values(statusCounts);
             statusChart.update();
+            console.log("Charts updated.");
         }
 
         function initializeMap() {
+            const mapElement = document.getElementById('map');
+            if (!mapElement) {
+                console.warn("Map element not found, cannot initialize map.");
+                return;
+            }
             map = L.map('map').setView([28.5, -82.5], 7);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
             }).addTo(map);
             markerLayer.addTo(map);
+
+            // Add resize observer for map
+            new ResizeObserver(() => {
+                if (map) map.invalidateSize();
+            }).observe(mapElement);
+            console.log("Map initialized.");
         }
 
         function updateMap(casesToDisplay) {
-            if (!map) return;
+            if (!map) {
+                console.warn("Map not initialized, cannot update map.");
+                return;
+            }
             markerLayer.clearLayers();
             casesToDisplay.forEach(c => {
-                const coords = countyCoordinates[c.county.trim()];
+                const coords = countyCoordinates[c.county?.trim()];
                 if (coords) {
                     const popupContent = `<h4 class="font-bold">${escapeHTML(c.defendant)}</h4><p>${escapeHTML(c.county)} County</p><button class="popup-view-details mt-2 text-sm font-semibold text-red-600" data-case-id="${c.id}">View Details</button>`;
                     L.marker(coords).bindPopup(popupContent).addTo(markerLayer);
                 }
             });
+            console.log("Map updated with markers.");
         }
-        
+
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
-            // FIX: Assign elements to the globally-scoped variables once the DOM is ready.
+            // Assign elements to the globally-scoped variables once the DOM is ready.
             loadingSpinner = document.getElementById('loading-spinner');
             caseListings = document.getElementById('case-listings');
             noResultsDiv = document.getElementById('no-results');
@@ -442,8 +679,14 @@
             toast = document.getElementById('toast');
             toastMessage = document.getElementById('toast-message');
 
+            console.log("DOM content loaded, assigning elements.");
+
             // --- Setup Initial State ---
-            countyListDatalist.innerHTML = floridaCounties.map(county => `<option value="${county}"></option>`).join('');
+            if (countyListDatalist) {
+                countyListDatalist.innerHTML = floridaCounties.map(county => `<option value="${county}"></option>`).join('');
+            } else {
+                console.warn("Datalist for county not found.");
+            }
 
             // --- Start Application Logic ---
             initializeAppAndData();
@@ -451,12 +694,12 @@
             createCharts();
 
             // --- Attach Event Listeners ---
-            searchInput.addEventListener('input', applyFilters);
-            countyFilter.addEventListener('change', applyFilters);
-            statusFilter.addEventListener('change', applyFilters);
-            dateFilter.addEventListener('change', applyFilters);
-            reportCaseBtn.addEventListener('click', () => openModal(null, 'report'));
-            submitCaseBtn.addEventListener('click', () => openModal(null, 'submit'));
+            if (searchInput) searchInput.addEventListener('input', applyFilters);
+            if (countyFilter) countyFilter.addEventListener('change', applyFilters);
+            if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+            if (dateFilter) dateFilter.addEventListener('change', applyFilters);
+            if (reportCaseBtn) reportCaseBtn.addEventListener('click', () => openModal(null, 'report'));
+            if (submitCaseBtn) submitCaseBtn.addEventListener('click', () => openModal(null, 'submit'));
 
             // Use event delegation for dynamically created elements inside the main body
             document.body.addEventListener('click', (e) => {
@@ -468,6 +711,8 @@
                     openModal(e.target.dataset.caseId, 'details');
                 }
             });
+
+            console.log("Event listeners attached.");
         });
 
     </script>
