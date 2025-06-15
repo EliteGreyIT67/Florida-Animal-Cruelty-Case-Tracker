@@ -8,7 +8,10 @@ The application is built with modern web technologies, including a live Firebase
 
 ## Live Demo
 
-A live, functional version of this application is available for interaction. *(Note: Link would go here in a real GitHub project)*
+A live, functional version of this application can be found at:  
+[https://elitegreyit67.github.io/Florida-Animal-Cruelty-Case-Tracker/](https://elitegreyit67.github.io/Florida-Animal-Cruelty-Case-Tracker/)
+
+*(Note: You will need to deploy the site via GitHub Pages for this link to become active.)*
 
 ## Key Features
 
@@ -34,8 +37,8 @@ To run this project locally, you will need to have a Google Firebase account.
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/your-username/florida-animal-cruelty-tracker.git](https://github.com/your-username/florida-animal-cruelty-tracker.git)
-    cd florida-animal-cruelty-tracker
+    git clone [https://github.com/EliteGreyIT67/Florida-Animal-Cruelty-Case-Tracker.git](https://github.com/EliteGreyIT67/Florida-Animal-Cruelty-Case-Tracker.git)
+    cd Florida-Animal-Cruelty-Case-Tracker
     ```
 
 2.  **Firebase Configuration:**
@@ -53,13 +56,13 @@ To run this project locally, you will need to have a Google Firebase account.
         appId: "..."
       };
       ```
-    - This project is designed to work with environment variables provided by a host (like the one you're using). You would typically place this config in a secure file or environment variable. For simple local testing, you can modify the `index.html` script section to use your config directly, but **do not commit your keys to a public repository.**
+    - This project is designed to work with environment variables provided by a host. For local testing, you must replace the placeholder `firebaseConfig` in `index.html` with your actual config object. **Do not commit your keys to a public repository.**
 
 3.  **Enable Firestore:**
     - In the Firebase console, go to the **Firestore Database** section.
     - Click **Create database**.
     - Start in **test mode** for easy local development. This will allow open read/write access. **For a production application, you must set up proper security rules.**
-    - The application is designed to automatically seed the database with initial data on the first run if the `cases` collection is empty.
+    - The application is designed to be user-driven and will start with an empty database.
 
 4.  **Run the Application:**
     - Since this is a vanilla HTML/JS project, you can open the `index.html` file directly in your browser. For best results and to avoid CORS issues with modules, it's recommended to use a simple local server. If you have Python installed:
