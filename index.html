@@ -141,7 +141,6 @@
             'Alachua': [29.6516, -82.3248], 'Baker': [30.3269, -82.2858], 'Bay': [30.1766, -85.6602], 'Bradford': [29.9538, -82.1192], 'Brevard': [28.5383, -80.6622], 'Broward': [26.1224, -80.1373], 'Calhoun': [30.4468, -85.1221], 'Charlotte': [26.9079, -82.0834], 'Citrus': [28.8486, -82.4984], 'Clay': [29.9863, -81.7789], 'Collier': [26.1420, -81.7948], 'Columbia': [30.1897, -82.6393], 'DeSoto': [27.2178, -81.8545], 'Dixie': [29.5319, -83.1118], 'Duval': [30.3322, -81.6557], 'Escambia': [30.4213, -87.2169], 'Flagler': [29.4758, -81.2095], 'Franklin': [29.7435, -84.9768], 'Gadsden': [30.5846, -84.5710], 'Gilchrist': [29.6897, -82.8235], 'Glades': [26.9634, -81.3320], 'Gulf': [29.6635, -85.2938], 'Hamilton': [30.5188, -82.9437], 'Hardee': [27.5453, -81.8023], 'Hendry': [26.7559, -81.2581], 'Hernando': [28.5350, -82.3815], 'Highlands': [27.4914, -81.4601], 'Hillsborough': [27.9506, -82.4572], 'Holmes': [30.7713, -85.8455], 'Indian River': [27.6389, -80.3973], 'Jackson': [30.7752, -85.2341], 'Jefferson': [30.5391, -83.8710], 'Lafayette': [30.0619, -83.2504], 'Lake': [28.8033, -81.8762], 'Lee': [26.6406, -81.8721], 'Leon': [30.4383, -84.2807], 'Levy': [29.1866, -82.8718], 'Liberty': [30.2224, -84.9566], 'Madison': [30.4688, -83.4110], 'Manatee': [27.4989, -82.5748], 'Marion': [29.1872, -82.1401], 'Martin': [27.1995, -80.2520], 'Miami-Dade': [25.7617, -80.1918], 'Monroe': [24.5551, -81.7800], 'Nassau': [30.6272, -81.6904], 'Okaloosa': [30.4049, -86.5919], 'Okeechobee': [27.2431, -80.8281], 'Orange': [28.5383, -81.3792], 'Osceola': [28.2917, -81.2914], 'Palm Beach': [26.7056, -80.0364], 'Pasco': [28.2256, -82.4065], 'Pinellas': [27.7630, -82.6401], 'Polk': [28.0461, -81.7145], 'Putnam': [29.6480, -81.6373], 'St. Johns': [29.8947, -81.3145], 'St. Lucie': [27.4467, -80.3256], 'Santa Rosa': [30.4180, -87.2178], 'Sarasota': [27.3364, -82.5307], 'Seminole': [28.5714, -81.3328], 'Sumter': [28.6983, -82.0493], 'Suwannee': [30.2916, -82.9365], 'Taylor': [30.0519, -83.5826], 'Union': [30.0158, -82.3418], 'Volusia': [29.0280, -81.3087], 'Wakulla': [30.1705, -84.3802], 'Walton': [30.4216, -86.1013], 'Washington': [30.7818, -85.5505]
         };
 
-        // --- FIREBASE SETUP ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
@@ -166,30 +165,24 @@
 
         // --- FUNCTIONS ---
         
-        function getFirebaseConfig() {
-            try {
-                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    return JSON.parse(__firebase_config);
-                }
-                const configStr = `{{ secrets.FIREBASE_CONFIG }}`;
-                if (configStr && !configStr.startsWith('{{')) {
-                    return JSON.parse(configStr);
-                }
-                return null;
-            } catch (e) {
-                console.error("Could not parse Firebase config:", e);
-                return null;
-            }
-        }
-        
         async function initializeAppAndData() {
-            const firebaseConfig = getFirebaseConfig();
-            
+            // This placeholder will be replaced by the GitHub Action during deployment.
+            const firebaseConfigStr = '{{ secrets.FIREBASE_CONFIG }}';
+            let firebaseConfig;
+
+            try {
+                if (firebaseConfigStr.startsWith('{')) {
+                    firebaseConfig = JSON.parse(firebaseConfigStr);
+                }
+            } catch (e) {
+                 console.error("Could not parse Firebase config:", e);
+            }
+
             if (!firebaseConfig || !firebaseConfig.apiKey) {
                 loadingSpinner.innerHTML = `
                     <div class="text-red-600 bg-red-100 border border-red-400 rounded-lg p-4 max-w-2xl mx-auto">
                         <h3 class="font-bold text-lg">Configuration Error</h3>
-                        <p class="mt-2">Firebase configuration is missing or invalid. If you are the developer, please ensure your environment variables are set up correctly. This application cannot load data without a valid connection to the database.</p>
+                        <p class="mt-2">Firebase configuration is missing or invalid. For local development, ensure you have a valid 'firebase-config.js' file. For live deployment, ensure the 'FIREBASE_CONFIG' secret is set correctly in your repository settings.</p>
                     </div>`;
                 return;
             }
@@ -217,7 +210,7 @@
 
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
-                loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Error connecting to the database.</p>';
+                loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Error connecting to the database. Please check your Firebase configuration.</p>';
             }
         }
 
