@@ -1,9 +1,9 @@
 # .github/workflows/deploy.yml
 #
-# This workflow will build and deploy your project to GitHub Pages.
-# It's been updated to run build commands from within a subdirectory.
+# Correct workflow for a static HTML/JS project (no package.json).
+# This version assumes your index.html is in the root of the repository.
 #
-name: Build and Deploy to GitHub Pages
+name: Deploy Static HTML to GitHub Pages
 
 on:
   push:
@@ -13,43 +13,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
+      # 1. Checks out your repository's files
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
+      # 2. Creates the firebaseConfig.js file using your secret
       - name: Create Firebase Config File
         run: |
-          # This now creates the file inside the project's subfolder
-          mkdir -p Florida-Animal-Cruelty-Case-Tracker/src 
-          echo "export const firebaseConfig = ${{ secrets.FIREBASE_CONFIG }};" > Florida-Animal-Cruelty-Case-Tracker/src/firebaseConfig.js
-        # IMPORTANT: This assumes your source code is in a folder named
-        # 'Florida-Animal-Cruelty-Case-Tracker'. If it has a different name,
-        # update the path here and in the steps below.
+          # This command now creates the config file in the root directory.
+          echo 'export const firebaseConfig = ${{ secrets.FIREBASE_CONFIG }};' > firebaseConfig.js
+        env:
+          FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
 
-      - name: Install Dependencies
-        run: npm install
-        # *** FIX: Specify the directory where package.json is located ***
-        working-directory: ./Florida-Animal-Cruelty-Case-Tracker
-
-      - name: Build Project
-        run: npm run build
-        # *** FIX: Also run the build command from the same directory ***
-        working-directory: ./Florida-Animal-Cruelty-Case-Tracker
-
+      # 3. Deploys the content of your project folder to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # *** FIX: Update the publish directory to point to the build output
-          # inside the subfolder. ***
-          publish_dir: ./Florida-Animal-Cruelty-Case-Tracker/dist
-          # Note: If your build output folder is named 'build' or 'public',
-          # change '/dist' accordingly.
+          # This now publishes from the root directory.
+          publish_dir: ./
 
