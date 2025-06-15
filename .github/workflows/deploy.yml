@@ -1,18 +1,15 @@
 # .github/workflows/deploy.yml
 #
 # This workflow will build and deploy your project to GitHub Pages.
-# It securely injects your Firebase configuration at build time.
+# It's been updated to run build commands from within a subdirectory.
 #
 name: Build and Deploy to GitHub Pages
 
 on:
-  # Runs on pushes to the main branch
   push:
     branches:
       - main
-      - master # Also include master just in case
-
-  # Allows you to run this workflow manually from the Actions tab
+      - master
   workflow_dispatch:
 
 jobs:
@@ -25,35 +22,34 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18' # Use a recent LTS version of Node.js
+          node-version: '18'
 
       - name: Create Firebase Config File
         run: |
-          # Create the directory if it doesn't exist (adjust the path if needed)
-          mkdir -p src 
-          # Create the firebaseConfig.js file and populate it with the secret
-          echo "export const firebaseConfig = ${{ secrets.FIREBASE_CONFIG }};" > src/firebaseConfig.js
-        # This command takes the FIREBASE_CONFIG secret and writes it into a file
-        # located at 'src/firebaseConfig.js'.
-        # IMPORTANT: Make sure the path 'src/firebaseConfig.js' matches where your
-        # application expects to find this file. If your firebase initialization
-        # is in a different folder, update the path here.
+          # This now creates the file inside the project's subfolder
+          mkdir -p Florida-Animal-Cruelty-Case-Tracker/src 
+          echo "export const firebaseConfig = ${{ secrets.FIREBASE_CONFIG }};" > Florida-Animal-Cruelty-Case-Tracker/src/firebaseConfig.js
+        # IMPORTANT: This assumes your source code is in a folder named
+        # 'Florida-Animal-Cruelty-Case-Tracker'. If it has a different name,
+        # update the path here and in the steps below.
 
       - name: Install Dependencies
         run: npm install
-        # This runs the standard npm install to get all your project's packages.
+        # *** FIX: Specify the directory where package.json is located ***
+        working-directory: ./Florida-Animal-Cruelty-Case-Tracker
 
       - name: Build Project
         run: npm run build
-        # This runs the build script defined in your package.json.
-        # If your build script is named something else, change 'build' accordingly.
+        # *** FIX: Also run the build command from the same directory ***
+        working-directory: ./Florida-Animal-Cruelty-Case-Tracker
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          # The 'publish_dir' should be your project's build output directory.
-          # Common names are 'dist', 'build', or 'public'. Check your project's
-          # configuration (e.g., vite.config.js or similar) to be sure.
+          # *** FIX: Update the publish directory to point to the build output
+          # inside the subfolder. ***
+          publish_dir: ./Florida-Animal-Cruelty-Case-Tracker/dist
+          # Note: If your build output folder is named 'build' or 'public',
+          # change '/dist' accordingly.
 
