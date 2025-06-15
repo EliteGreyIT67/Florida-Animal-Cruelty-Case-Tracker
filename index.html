@@ -168,14 +168,14 @@
         
         function getFirebaseConfig() {
             try {
-                // This is a placeholder that will be replaced by a deployment script (e.g., GitHub Actions).
-                // For local development, it falls back to the __firebase_config global variable.
-                const configStr = `{{ secrets.FIREBASE_CONFIG }}` || (typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-                // Avoid parsing the placeholder itself
-                if (configStr.includes('secrets.FIREBASE_CONFIG')) {
-                    return JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    return JSON.parse(__firebase_config);
                 }
-                return JSON.parse(configStr);
+                const configStr = `{{ secrets.FIREBASE_CONFIG }}`;
+                if (configStr && !configStr.startsWith('{{')) {
+                    return JSON.parse(configStr);
+                }
+                return null;
             } catch (e) {
                 console.error("Could not parse Firebase config:", e);
                 return null;
