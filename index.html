@@ -21,11 +21,13 @@
         .toast {
             visibility: hidden;
             opacity: 0;
-            transition: opacity 0.5s, visibility 0.5s;
+            transition: opacity 0.5s, visibility 0.5s, transform 0.3s;
+            transform: translateY(20px);
         }
         .toast.show {
             visibility: visible;
             opacity: 1;
+            transform: translateY(0);
         }
         .loader {
             border-top-color: #ef4444;
@@ -33,6 +35,19 @@
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+        /* IMPROVEMENT: Add a subtle fade-in animation for the modal */
+        .modal-content {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        /* Style for the native date picker placeholder */
+        input[type="date"]:not(:valid):before {
+            content: "Any Date";
+            color: #9ca3af;
         }
     </style>
 </head>
@@ -68,14 +83,18 @@
              <p class="text-gray-600">This dashboard provides a centralized, real-time view of animal cruelty cases across Florida, powered by user submissions and a live database. Use the "Submit a Case" button to add new cases and contribute to this public awareness effort. All submissions are visible to all users instantly.</p>
         </div>
 
+        <!-- IMPROVEMENT: Statistics Overview Section (Fully Implemented) -->
+        <div id="stats-overview" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+             <div class="bg-white p-5 rounded-lg shadow-sm flex items-center"><div class="p-3 rounded-full bg-red-100 mr-4"><svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div><div><p class="text-sm text-gray-500">Total Cases</p><p id="total-cases-stat" class="text-2xl font-bold">0</p></div></div>
+             <div class="bg-white p-5 rounded-lg shadow-sm flex items-center"><div class="p-3 rounded-full bg-blue-100 mr-4"><svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div><div><p class="text-sm text-gray-500">Pending Cases</p><p id="pending-cases-stat" class="text-2xl font-bold">0</p></div></div>
+             <div class="bg-white p-5 rounded-lg shadow-sm flex items-center"><div class="p-3 rounded-full bg-green-100 mr-4"><svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div><div><p class="text-sm text-gray-500">Counties Represented</p><p id="county-count-stat" class="text-2xl font-bold">0</p></div></div>
+        </div>
+
         <!-- Map Section -->
         <div class="mb-8 bg-white p-6 rounded-lg shadow-sm">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Case Map</h3>
             <div id="map"></div>
         </div>
-
-
-        <div id="stats-overview" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"></div>
         
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-8">
             <div class="lg:col-span-3 bg-white p-6 rounded-lg shadow-sm"><canvas id="county-chart"></canvas></div>
@@ -83,17 +102,18 @@
         </div>
 
         <div class="bg-white p-4 rounded-lg shadow-sm mb-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div><label for="search" class="block text-sm font-medium text-gray-700">Search</label><input type="text" id="search" placeholder="Defendant or Case #" autocomplete="off" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-3"></div>
                 <div><label for="county-filter" class="block text-sm font-medium text-gray-700">County</label><select id="county-filter" autocomplete="off" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-2"><option value="">All</option></select></div>
                 <div><label for="status-filter" class="block text-sm font-medium text-gray-700">Status</label><select id="status-filter" autocomplete="off" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-2"><option value="">All</option></select></div>
-                <div><label for="date-filter" class="block text-sm font-medium text-gray-700">Incident After</label><input type="text" id="date-filter" placeholder="Any Date" autocomplete="off" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-3"></div>
+                <!-- IMPROVEMENT: Use native date picker for better UX and consistent formatting -->
+                <div><label for="date-filter" class="block text-sm font-medium text-gray-700">Incident After</label><input type="date" id="date-filter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-3 text-gray-500"></div>
             </div>
         </div>
         
         <div id="loading-spinner" class="text-center py-12"><div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32 mx-auto"></div><h3 class="text-2xl font-semibold text-gray-500 mt-4">Loading Cases...</h3></div>
         <div id="case-listings" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden"></div>
-        <div id="no-results" class="hidden text-center py-12"><h3 class="text-2xl font-semibold text-gray-500">No Cases Found</h3><p class="text-gray-400 mt-2">The database is currently empty. Be the first to submit a case!</p></div>
+        <div id="no-results" class="hidden text-center py-12"><h3 class="text-2xl font-semibold text-gray-500">No Cases Found</h3><p id="no-results-message" class="text-gray-400 mt-2">The database is currently empty or no cases match your filters.</p></div>
     </main>
     
     <!-- Modals -->
@@ -104,14 +124,28 @@
         <p id="toast-message"></p>
     </div>
 
+    <!-- IMPROVEMENT: Datalist for county autocomplete -->
+    <datalist id="county-list"></datalist>
+
     <script type="module">
-        import { firebaseConfig } from './firebaseConfig.js';
+        // This is a placeholder. For local development, replace this with your actual Firebase config object.
+        // For production, it's recommended to use environment variables.
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY", // REPLACE
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com", // REPLACE
+            projectId: "YOUR_PROJECT_ID", // REPLACE
+            storageBucket: "YOUR_PROJECT_ID.appspot.com", // REPLACE
+            messagingSenderId: "YOUR_SENDER_ID", // REPLACE
+            appId: "YOUR_APP_ID" // REPLACE
+        };
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- DATA and CONFIG ---
         const countyCoordinates = { 'Alachua': [29.6516, -82.3248], 'Baker': [30.3269, -82.2858], 'Bay': [30.1766, -85.6602], 'Bradford': [29.9538, -82.1192], 'Brevard': [28.5383, -80.6622], 'Broward': [26.1224, -80.1373], 'Calhoun': [30.4468, -85.1221], 'Charlotte': [26.9079, -82.0834], 'Citrus': [28.8486, -82.4984], 'Clay': [29.9863, -81.7789], 'Collier': [26.1420, -81.7948], 'Columbia': [30.1897, -82.6393], 'DeSoto': [27.2178, -81.8545], 'Dixie': [29.5319, -83.1118], 'Duval': [30.3322, -81.6557], 'Escambia': [30.4213, -87.2169], 'Flagler': [29.4758, -81.2095], 'Franklin': [29.7435, -84.9768], 'Gadsden': [30.5846, -84.5710], 'Gilchrist': [29.6897, -82.8235], 'Glades': [26.9634, -81.3320], 'Gulf': [29.6635, -85.2938], 'Hamilton': [30.5188, -82.9437], 'Hardee': [27.5453, -81.8023], 'Hendry': [26.7559, -81.2581], 'Hernando': [28.5350, -82.3815], 'Highlands': [27.4914, -81.4601], 'Hillsborough': [27.9506, -82.4572], 'Holmes': [30.7713, -85.8455], 'Indian River': [27.6389, -80.3973], 'Jackson': [30.7752, -85.2341], 'Jefferson': [30.5391, -83.8710], 'Lafayette': [30.0619, -83.2504], 'Lake': [28.8033, -81.8762], 'Lee': [26.6406, -81.8721], 'Leon': [30.4383, -84.2807], 'Levy': [29.1866, -82.8718], 'Liberty': [30.2224, -84.9566], 'Madison': [30.4688, -83.4110], 'Manatee': [27.4989, -82.5748], 'Marion': [29.1872, -82.1401], 'Martin': [27.1995, -80.2520], 'Miami-Dade': [25.7617, -80.1918], 'Monroe': [24.5551, -81.7800], 'Nassau': [30.6272, -81.6904], 'Okaloosa': [30.4049, -86.5919], 'Okeechobee': [27.2431, -80.8281], 'Orange': [28.5383, -81.3792], 'Osceola': [28.2917, -81.2914], 'Palm Beach': [26.7056, -80.0364], 'Pasco': [28.2256, -82.4065], 'Pinellas': [27.7630, -82.6401], 'Polk': [28.0461, -81.7145], 'Putnam': [29.6480, -81.6373], 'St. Johns': [29.8947, -81.3145], 'St. Lucie': [27.4467, -80.3256], 'Santa Rosa': [30.4180, -87.2178], 'Sarasota': [27.3364, -82.5307], 'Seminole': [28.5714, -81.3328], 'Sumter': [28.6983, -82.0493], 'Suwannee': [30.2916, -82.9365], 'Taylor': [30.0519, -83.5826], 'Union': [30.0158, -82.3418], 'Volusia': [29.0280, -81.3087], 'Wakulla': [30.1705, -84.3802], 'Walton': [30.4216, -86.1013], 'Washington': [30.7818, -85.5505] };
+        const floridaCounties = Object.keys(countyCoordinates);
         const appId = 'florida-animal-cruelty-tracker';
         let app, auth, db, casesCollection;
         let allCases = [];
@@ -120,6 +154,7 @@
         const loadingSpinner = document.getElementById('loading-spinner');
         const caseListings = document.getElementById('case-listings');
         const noResultsDiv = document.getElementById('no-results');
+        const noResultsMessage = document.getElementById('no-results-message');
         const searchInput = document.getElementById('search');
         const countyFilter = document.getElementById('county-filter');
         const statusFilter = document.getElementById('status-filter');
@@ -129,16 +164,13 @@
         const submitCaseBtn = document.getElementById('submit-case-btn');
         const toast = document.getElementById('toast');
         const toastMessage = document.getElementById('toast-message');
+        const countyListDatalist = document.getElementById('county-list');
 
         let countyChart, statusChart;
         let map;
         let markerLayer = L.layerGroup();
 
         // --- UTILITY FUNCTIONS ---
-        /**
-         * FIX: #6 - Security
-         * Escapes HTML special characters in a string to prevent XSS attacks.
-         */
         const escapeHTML = (str) => {
             if (!str) return '';
             return str.replace(/[&<>"']/g, (match) => {
@@ -153,12 +185,9 @@
             });
         };
 
-        /**
-         * FIX: #7 - Form UX
-         * Shows a toast notification message for a few seconds.
-         */
-        const showToast = (message) => {
+        const showToast = (message, isError = false) => {
             toastMessage.textContent = message;
+            toast.className = `toast fixed bottom-5 right-5 text-white py-3 px-5 rounded-lg shadow-xl ${isError ? 'bg-red-600' : 'bg-green-600'}`;
             toast.classList.add('show');
             setTimeout(() => {
                 toast.classList.remove('show');
@@ -168,8 +197,8 @@
 
         // --- MAIN APP FUNCTIONS ---
         async function initializeAppAndData() {
-            if (!firebaseConfig || !firebaseConfig.apiKey) {
-                loadingSpinner.innerHTML = `<div class="text-red-600 bg-red-100 border border-red-400 rounded-lg p-4 max-w-2xl mx-auto"><h3 class="font-bold text-lg">Configuration Error</h3><p class="mt-2">Firebase configuration is missing or invalid. Please ensure the application is running in the correct environment with the necessary configuration.</p></div>`;
+            if (!firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY") {
+                loadingSpinner.innerHTML = `<div class="text-red-600 bg-red-100 border border-red-400 rounded-lg p-4 max-w-2xl mx-auto"><h3 class="font-bold text-lg">Configuration Error</h3><p class="mt-2">Firebase configuration is missing. Please follow the setup instructions in the README.md file to configure your Firebase project locally.</p></div>`;
                 return;
             }
 
@@ -196,11 +225,13 @@
         function setupRealtimeListener() {
             onSnapshot(casesCollection, (snapshot) => {
                 allCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // IMPROVEMENT: Sort cases by incident date by default
+                allCases.sort((a, b) => new Date(b.incidentDate) - new Date(a.incidentDate));
+
                 loadingSpinner.classList.add('hidden');
-                caseListings.classList.remove('hidden');
                 
                 populateFilters();
-                applyFilters();
+                applyFilters(); // This will trigger render, charts, stats, map
             }, (error) => {
                 console.error("Error listening to database:", error);
                 loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Error fetching real-time data.</p>';
@@ -210,7 +241,15 @@
         function renderCases(casesToRender) {
             caseListings.innerHTML = '';
             
+            // IMPROVEMENT: More informative "no results" message
+            const hasActiveFilters = searchInput.value || countyFilter.value || statusFilter.value || dateFilter.value;
             noResultsDiv.classList.toggle('hidden', casesToRender.length > 0);
+            if(allCases.length === 0) {
+                 noResultsMessage.textContent = 'The database is currently empty. Be the first to submit a case!';
+            } else if (hasActiveFilters) {
+                 noResultsMessage.textContent = 'No cases match your current filter criteria.';
+            }
+
             caseListings.classList.toggle('hidden', casesToRender.length === 0);
 
             casesToRender.forEach(caseData => {
@@ -229,7 +268,7 @@
                         <h3 class="text-xl font-bold text-gray-800 mt-2">${escapeHTML(caseData.defendant)}</h3>
                         <p class="text-sm text-gray-600">${caseData.caseNumber ? `Case #${escapeHTML(caseData.caseNumber)}`: '&nbsp;'}</p>
                         <div class="mt-4 border-t border-gray-200 pt-4">
-                            <p class="text-sm"><strong class="font-medium text-gray-700">Incident:</strong> ${escapeHTML(caseData.incidentDate)}</p>
+                            <p class="text-sm"><strong class="font-medium text-gray-700">Incident:</strong> ${escapeHTML(new Date(caseData.incidentDate).toLocaleDateString())}</p>
                             <p class="text-sm"><strong class="font-medium text-gray-700">Animal:</strong> ${escapeHTML(caseData.animalType)}</p>
                         </div>
                     </div>
@@ -270,7 +309,7 @@
             const searchTerm = searchInput.value.toLowerCase();
             const selectedCounty = countyFilter.value;
             const selectedStatus = statusFilter.value;
-            const selectedDate = dateFilter.value;
+            const selectedDate = dateFilter.value; // Format: YYYY-MM-DD
 
             const filteredCases = allCases.filter(c => {
                 const s = c.defendant?.toLowerCase() || '';
@@ -278,8 +317,7 @@
                 const matchesSearch = s.includes(searchTerm) || cn.includes(searchTerm);
                 const matchesCounty = !selectedCounty || c.county === selectedCounty;
                 const matchesStatus = !selectedStatus || c.status === selectedStatus;
-                // FIX: #3 - Date Filtering
-                const matchesDate = !selectedDate || new Date(c.incidentDate) >= new Date(selectedDate);
+                const matchesDate = !selectedDate || c.incidentDate >= selectedDate;
                 return matchesSearch && matchesCounty && matchesStatus && matchesDate;
             });
 
@@ -294,7 +332,7 @@
             
             const baseModal = (title, content, footer) => `
                 <div id="modal-backdrop" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div class="modal-content bg-white rounded-xl shadow-2xl w-full max-w-2xl transform scale-100 overflow-y-auto max-h-full">
+                    <div class="modal-content bg-white rounded-xl shadow-2xl w-full max-w-2xl transform overflow-y-auto max-h-full">
                         <div class="p-6 sm:p-8"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-900">${title}</h2><button class="close-modal-btn text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button></div>${content}</div>
                         <div class="bg-gray-100 px-6 py-4 text-right rounded-b-xl">${footer}</div>
                     </div>
@@ -302,23 +340,24 @@
             `;
             
             if (type === 'report') {
-                modalHTML = baseModal('How to Report Animal Cruelty', `<div class="text-gray-700 space-y-4"><p class="font-bold text-red-600">If you witness an animal in a life-threatening situation, call 911 immediately.</p><p>For non-emergency concerns, contact your local county sheriff's office or animal control agency.</p></div>`, `<button class="close-modal-btn px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Close</button>`);
+                modalHTML = baseModal('How to Report Animal Cruelty', `<div class="text-gray-700 space-y-4"><p class="font-bold text-red-600">If you witness an animal in a life-threatening situation, call 911 immediately.</p><p>For non-emergency concerns, contact your local county sheriff's office or animal control agency. Providing a location, date, time, and description is crucial.</p></div>`, `<button class="close-modal-btn px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Close</button>`);
             } else if (type === 'submit') {
-                 modalHTML = baseModal('Submit a New Case', `<form id="submit-case-form" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="defendant" class="block text-sm font-medium">Defendant Name*</label><input type="text" id="defendant" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="county" class="block text-sm font-medium">County*</label><input type="text" id="county" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="caseNumber" class="block text-sm font-medium">Case Number</label><input type="text" id="caseNumber" class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="incidentDate" class="block text-sm font-medium">Incident Date*</label><input type="date" id="incidentDate" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div></div><div><label for="animalType" class="block text-sm font-medium">Animal Type(s)*</label><input type="text" id="animalType" placeholder="e.g., Dogs, Cats" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="summary" class="block text-sm font-medium">Summary*</label><textarea id="summary" rows="3" required class="mt-1 w-full border-gray-300 rounded-md p-3"></textarea></div><div><label for="source" class="block text-sm font-medium">Source Link*</label><input type="url" id="source" required placeholder="https://" class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div id="submit-error" class="text-red-600 text-sm hidden font-semibold"></div><p class="text-xs text-gray-500">*Required field.</p></form>`, `<button id="form-submit-btn" type="submit" form="submit-case-form" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Submit Case</button>`);
+                 modalHTML = baseModal('Submit a New Case', `<form id="submit-case-form" class="space-y-4" novalidate><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="defendant" class="block text-sm font-medium">Defendant Name*</label><input type="text" id="defendant" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="county" class="block text-sm font-medium">County*</label><input type="text" id="county" required list="county-list" class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="caseNumber" class="block text-sm font-medium">Case Number</label><input type="text" id="caseNumber" class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="incidentDate" class="block text-sm font-medium">Incident Date*</label><input type="date" id="incidentDate" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div></div><div><label for="animalType" class="block text-sm font-medium">Animal Type(s)*</label><input type="text" id="animalType" placeholder="e.g., Dogs, Cats" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div><label for="summary" class="block text-sm font-medium">Summary*</label><textarea id="summary" rows="3" required class="mt-1 w-full border-gray-300 rounded-md p-3"></textarea></div><div><label for="source" class="block text-sm font-medium">Source Link*</label><input type="url" id="source" required placeholder="https://" class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div><div id="submit-error" class="text-red-600 text-sm hidden font-semibold"></div><p class="text-xs text-gray-500">*Required field.</p></form>`, `<button id="form-submit-btn" type="submit" form="submit-case-form" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Submit Case</button>`);
             } else if (type === 'details') {
                 const caseData = allCases.find(c => c.id === identifier);
                 if (!caseData) return;
-                 // FIX: #5 - Missing/Empty Data & #6 - Security
                  const chargesHTML = Array.isArray(caseData.charges) && caseData.charges.length > 0 
                     ? caseData.charges.map(charge => `<li>${escapeHTML(charge)}</li>`).join('') 
                     : '<li>No charges listed.</li>';
+                
+                 const formattedDate = caseData.incidentDate ? new Date(caseData.incidentDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : 'N/A';
 
                  modalHTML = baseModal('Case Details', 
                     `<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-gray-700">
                         <div><strong class="font-semibold text-gray-900">Case #:</strong> ${escapeHTML(caseData.caseNumber) || 'N/A'}</div>
                         <div><strong class="font-semibold text-gray-900">County:</strong> ${escapeHTML(caseData.county)}</div>
                         <div class="md:col-span-2"><strong class="font-semibold text-gray-900">Defendant:</strong> ${escapeHTML(caseData.defendant)}</div>
-                        <div><strong class="font-semibold text-gray-900">Incident Date:</strong> ${escapeHTML(caseData.incidentDate)}</div>
+                        <div><strong class="font-semibold text-gray-900">Incident Date:</strong> ${escapeHTML(formattedDate)}</div>
                         <div><strong class="font-semibold text-gray-900">Status:</strong> ${escapeHTML(caseData.status)}</div>
                     </div>
                     <div class="mt-6 border-t pt-4"><h4 class="font-semibold text-gray-900 mb-2">Charges</h4><ul class="list-disc list-inside space-y-1 text-gray-700">${chargesHTML}</ul></div>
@@ -348,22 +387,41 @@
             const submitBtn = document.getElementById('form-submit-btn');
             const errorDiv = document.getElementById('submit-error');
             
+            // IMPROVEMENT: More robust form validation
+            const countyInput = form.county;
+            if (!floridaCounties.includes(countyInput.value)) {
+                errorDiv.textContent = 'Please select a valid Florida county from the list.';
+                errorDiv.classList.remove('hidden');
+                countyInput.focus();
+                countyInput.classList.add('border-red-500');
+                return;
+            } else {
+                 countyInput.classList.remove('border-red-500');
+            }
+            
+            if(!form.checkValidity()){
+                errorDiv.textContent = 'Please fill out all required fields correctly.';
+                errorDiv.classList.remove('hidden');
+                form.reportValidity();
+                return;
+            }
+            
             submitBtn.disabled = true;
             submitBtn.innerHTML = 'Submitting...';
             errorDiv.classList.add('hidden');
 
             const newCase = {
-                defendant: form.defendant.value, county: form.county.value,
-                caseNumber: form.caseNumber.value || null, incidentDate: form.incidentDate.value,
-                animalType: form.animalType.value, summary: form.summary.value,
-                source: form.source.value, status: 'Pending Review', isUserSubmitted: true,
-                createdAt: new Date().toISOString(), charges: []
+                defendant: form.defendant.value.trim(), county: form.county.value.trim(),
+                caseNumber: form.caseNumber.value.trim() || null, incidentDate: form.incidentDate.value,
+                animalType: form.animalType.value.trim(), summary: form.summary.value.trim(),
+                source: form.source.value.trim(), status: 'Pending Review', isUserSubmitted: true,
+                createdAt: serverTimestamp(), charges: []
             };
 
             try {
                 await addDoc(casesCollection, newCase);
                 closeModal();
-                showToast("Case submitted successfully!"); // FIX: #7 - Form UX
+                showToast("Case submitted successfully!");
             } catch (error) {
                 console.error("Error submitting case:", error);
                 errorDiv.textContent = 'Submission failed. Please try again.';
@@ -372,27 +430,36 @@
                 submitBtn.textContent = 'Submit Case';
             }
         }
+        
+        // IMPROVEMENT: Implemented stats overview update logic
+        function updateStats(statsCases) {
+            const totalCases = allCases.length;
+            const pendingStatuses = ['Pending Trial', 'Awaiting Plea', 'Pending Review', 'Arrested'];
+            const pendingCases = allCases.filter(c => pendingStatuses.includes(c.status)).length;
+            const countyCount = new Set(allCases.map(c => c.county)).size;
 
-
-        function updateStats(statsCases) { /* ... same as before ... */ }
+            document.getElementById('total-cases-stat').textContent = totalCases;
+            document.getElementById('pending-cases-stat').textContent = pendingCases;
+            document.getElementById('county-count-stat').textContent = countyCount;
+        }
         
         function createCharts() {
             Chart.defaults.font.family = "'Inter', sans-serif";
             const countyCtx = document.getElementById('county-chart').getContext('2d');
-            countyChart = new Chart(countyCtx, { type: 'bar', data: { labels: [], datasets: [{ label: '# of Cases', data: [], backgroundColor: 'rgba(220, 38, 38, 0.6)' }] }, options: { scales: { y: { beginAtZero: true } }, responsive: true } });
+            countyChart = new Chart(countyCtx, { type: 'bar', data: { labels: [], datasets: [{ label: '# of Cases', data: [], backgroundColor: 'rgba(220, 38, 38, 0.6)', borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 1 }] }, options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Cases by County' } } } });
 
             const statusCtx = document.getElementById('status-chart').getContext('2d');
-            statusChart = new Chart(statusCtx, { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#FBBF24', '#3B82F6', '#16A34A', '#6366F1', '#EC4899'] }] }, options: { responsive: true } });
+            statusChart = new Chart(statusCtx, { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#FBBF24', '#3B82F6', '#16A34A', '#6366F1', '#EC4899', '#8B5CF6'] }] }, options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Case Status Distribution' } } } });
         }
         
         function updateCharts(chartCases) {
-            // FIX: #2 - Initialization Order
             if (!countyChart || !statusChart) return;
 
             const countyCounts = chartCases.reduce((acc, c) => { acc[c.county] = (acc[c.county] || 0) + 1; return acc; }, {});
-            const sortedCounties = Object.keys(countyCounts).sort((a, b) => countyCounts[b] - countyCounts[a]);
-            countyChart.data.labels = sortedCounties;
-            countyChart.data.datasets[0].data = sortedCounties.map(county => countyCounts[county]);
+            const sortedCounties = Object.entries(countyCounts).sort((a, b) => b[1] - a[1]).slice(0, 10); // Show top 10
+            
+            countyChart.data.labels = sortedCounties.map(entry => entry[0]);
+            countyChart.data.datasets[0].data = sortedCounties.map(entry => entry[1]);
             countyChart.update();
 
             const statusCounts = chartCases.reduce((acc, c) => { acc[c.status] = (acc[c.status] || 0) + 1; return acc; }, {});
@@ -404,27 +471,29 @@
         function initializeMap() {
             map = L.map('map').setView([28.5, -82.5], 7);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
             }).addTo(map);
             markerLayer.addTo(map);
         }
 
         function updateMap(casesToDisplay) {
-            // FIX: #2 - Initialization Order
             if (!map) return;
 
             markerLayer.clearLayers();
             casesToDisplay.forEach(c => {
                 const coords = countyCoordinates[c.county.trim()];
                 if (coords) {
-                    const popupContent = `<h4 class="font-bold">${escapeHTML(c.defendant)}</h4><p>${escapeHTML(c.county)}</p><button class="popup-view-details mt-2 text-sm font-semibold text-red-600" data-case-id="${c.id}">View Details</button>`;
+                    const popupContent = `<h4 class="font-bold">${escapeHTML(c.defendant)}</h4><p>${escapeHTML(c.county)} County</p><button class="popup-view-details mt-2 text-sm font-semibold text-red-600" data-case-id="${c.id}">View Details</button>`;
                     L.marker(coords).bindPopup(popupContent).addTo(markerLayer);
                 }
             });
         }
-
+        
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
+            // IMPROVEMENT: Populate county datalist for autocomplete
+            countyListDatalist.innerHTML = floridaCounties.map(county => `<option value="${county}"></option>`).join('');
+
             initializeAppAndData();
             initializeMap();
             createCharts();
