@@ -166,13 +166,13 @@
         // --- FUNCTIONS ---
         
         async function initializeAppAndData() {
-            // This placeholder will be replaced by the GitHub Action during deployment.
-            const firebaseConfigStr = '{{ secrets.FIREBASE_CONFIG }}';
+            const configPlaceholder = `__FIREBASE_CONFIG_PLACEHOLDER__`;
             let firebaseConfig;
 
             try {
-                if (firebaseConfigStr.startsWith('{')) {
-                    firebaseConfig = JSON.parse(firebaseConfigStr);
+                const configStr = configPlaceholder;
+                if (configStr.startsWith('{')) { // Check if it's a JSON object
+                    firebaseConfig = JSON.parse(configStr);
                 }
             } catch (e) {
                  console.error("Could not parse Firebase config:", e);
@@ -182,7 +182,7 @@
                 loadingSpinner.innerHTML = `
                     <div class="text-red-600 bg-red-100 border border-red-400 rounded-lg p-4 max-w-2xl mx-auto">
                         <h3 class="font-bold text-lg">Configuration Error</h3>
-                        <p class="mt-2">Firebase configuration is missing or invalid. For local development, ensure you have a valid 'firebase-config.js' file. For live deployment, ensure the 'FIREBASE_CONFIG' secret is set correctly in your repository settings.</p>
+                        <p class="mt-2">Firebase configuration is missing or invalid. For live deployment, ensure the 'FIREBASE_CONFIG' secret is set correctly in your repository settings and the deployment action has completed successfully.</p>
                     </div>`;
                 return;
             }
