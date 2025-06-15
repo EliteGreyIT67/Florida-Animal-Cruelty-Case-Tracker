@@ -24,4 +24,5 @@ yarn-error.log*
 
 # Firebase credentials (if stored locally - not recommended)
 firebase-credentials.json
+firebase-config.js
 
