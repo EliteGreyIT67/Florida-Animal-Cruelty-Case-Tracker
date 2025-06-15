@@ -1,11 +1,9 @@
-# .github/workflows/deploy.yml
-
+# GitHub Action for deploying the site to GitHub Pages
 name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -26,8 +24,20 @@ jobs:
       
       - name: Replace Firebase config
         run: |
-          # Use Node.js to safely replace the placeholder with the JSON from the secret
-          node -e "let fs = require('fs'); let file = fs.readFileSync('index.html', 'utf-8'); let result = file.replace('\'__FIREBASE_CONFIG_PLACEHOLDER__\'', process.env.FIREBASE_CONFIG); fs.writeFileSync('index.html', result, 'utf-8');"
+          # Use Node.js to safely read the secret and replace the placeholder.
+          # This avoids all issues with special characters in the secret.
+          node -e "
+            const fs = require('fs');
+            const htmlPath = 'index.html';
+            const placeholder = '\'__FIREBASE_CONFIG_PLACEHOLDER__\'';
+            const secret = process.env.FIREBASE_CONFIG;
+            
+            let htmlContent = fs.readFileSync(htmlPath, 'utf8');
+            const newHtmlContent = htmlContent.replace(placeholder, secret);
+            fs.writeFileSync(htmlPath, newHtmlContent, 'utf8');
+            
+            console.log('Firebase config injected successfully.');
+          "
         env:
           FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
 
@@ -49,3 +59,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
