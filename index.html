@@ -100,19 +100,19 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div class="lg:col-span-2">
                     <label for="search" class="block text-sm font-medium text-gray-700">Search</label>
-                    <input type="text" id="search" placeholder="Defendant or Case #" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-3">
+                    <input type="text" id="search" placeholder="Defendant or Case #" autocomplete="off" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-3">
                 </div>
                 <div>
                     <label for="county-filter" class="block text-sm font-medium text-gray-700">County</label>
-                    <select id="county-filter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-2"><option value="">All</option></select>
+                    <select id="county-filter" autocomplete="off" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-2"><option value="">All</option></select>
                 </div>
                 <div>
                     <label for="status-filter" class="block text-sm font-medium text-gray-700">Status</label>
-                    <select id="status-filter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-2"><option value="">All</option></select>
+                    <select id="status-filter" autocomplete="off" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-2"><option value="">All</option></select>
                 </div>
                 <div>
                     <label for="date-filter" class="block text-sm font-medium text-gray-700">Incident After</label>
-                    <input type="date" id="date-filter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-3">
+                    <input type="text" id="date-filter" placeholder="Any Date" autocomplete="off" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-10 px-3">
                 </div>
             </div>
         </div>
@@ -142,7 +142,6 @@
         };
 
         // --- FIREBASE SETUP ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
@@ -167,7 +166,34 @@
 
         // --- FUNCTIONS ---
         
+        function getFirebaseConfig() {
+            try {
+                // This is a placeholder that will be replaced by a deployment script (e.g., GitHub Actions).
+                // For local development, it falls back to the __firebase_config global variable.
+                const configStr = `{{ secrets.FIREBASE_CONFIG }}` || (typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                // Avoid parsing the placeholder itself
+                if (configStr.includes('secrets.FIREBASE_CONFIG')) {
+                    return JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                }
+                return JSON.parse(configStr);
+            } catch (e) {
+                console.error("Could not parse Firebase config:", e);
+                return null;
+            }
+        }
+        
         async function initializeAppAndData() {
+            const firebaseConfig = getFirebaseConfig();
+            
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                loadingSpinner.innerHTML = `
+                    <div class="text-red-600 bg-red-100 border border-red-400 rounded-lg p-4 max-w-2xl mx-auto">
+                        <h3 class="font-bold text-lg">Configuration Error</h3>
+                        <p class="mt-2">Firebase configuration is missing or invalid. If you are the developer, please ensure your environment variables are set up correctly. This application cannot load data without a valid connection to the database.</p>
+                    </div>`;
+                return;
+            }
+
             try {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
@@ -184,12 +210,14 @@
                         const casesCollectionPath = `/artifacts/${appId}/public/data/cases`;
                         casesCollection = collection(db, casesCollectionPath);
                         setupRealtimeListener();
+                    } else {
+                         loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Authentication failed. Unable to load cases.</p>';
                     }
                 });
 
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
-                loadingSpinner.innerHTML = '<p class="text-red-500">Error connecting to the database.</p>';
+                loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Error connecting to the database.</p>';
             }
         }
 
@@ -203,7 +231,7 @@
                 applyFilters();
             }, (error) => {
                 console.error("Error listening to database:", error);
-                loadingSpinner.innerHTML = '<p class="text-red-500">Error fetching real-time data.</p>';
+                loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Error fetching real-time data.</p>';
             });
         }
         
@@ -337,6 +365,7 @@
                         <div><label for="animalType" class="block text-sm font-medium">Animal Type(s)*</label><input type="text" id="animalType" placeholder="e.g., Dogs, Cats" required class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div>
                         <div><label for="summary" class="block text-sm font-medium">Summary of Allegations*</label><textarea id="summary" rows="3" required class="mt-1 w-full border-gray-300 rounded-md p-3"></textarea></div>
                         <div><label for="source" class="block text-sm font-medium">Source Link (News, Public Record, etc.)*</label><input type="url" id="source" required placeholder="https://" class="mt-1 w-full border-gray-300 rounded-md h-10 px-3"></div>
+                        <div id="submit-error" class="text-red-600 text-sm hidden font-semibold"></div>
                         <p class="text-xs text-gray-500">*Required field. Submitted cases will be marked as 'Pending Review'.</p>
                     </form>`,
                     `<button id="form-submit-btn" type="submit" form="submit-case-form" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Submit Case</button>`
@@ -385,8 +414,11 @@
             event.preventDefault();
             const form = event.target;
             const submitBtn = document.getElementById('form-submit-btn');
+            const errorDiv = document.getElementById('submit-error');
+            
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-6 w-6 inline-block mr-2 -mb-2"></span>Submitting...';
+            errorDiv.classList.add('hidden');
 
             const newCase = {
                 defendant: form.defendant.value, county: form.county.value,
@@ -401,6 +433,8 @@
                 closeModal();
             } catch (error) {
                 console.error("Error submitting case:", error);
+                errorDiv.textContent = 'Submission failed. Please try again.';
+                errorDiv.classList.remove('hidden');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit Case';
             }
@@ -489,7 +523,12 @@
                  searchInput.addEventListener('input', applyFilters);
                  countyFilter.addEventListener('change', applyFilters);
                  statusFilter.addEventListener('change', applyFilters);
-                 dateFilter.addEventListener('change', applyFilters);
+                 
+                 const dateFilterInput = document.getElementById('date-filter');
+                 dateFilterInput.addEventListener('focus', () => { dateFilterInput.type = 'date'; });
+                 dateFilterInput.addEventListener('blur', () => { if (!dateFilterInput.value) { dateFilterInput.type = 'text'; } });
+                 dateFilterInput.addEventListener('change', applyFilters);
+
                  reportCaseBtn.addEventListener('click', () => openModal(null, 'report'));
                  submitCaseBtn.addEventListener('click', () => openModal(null, 'submit'));
                  window.addEventListener('keydown', (e) => {
