@@ -21,11 +21,12 @@ jobs:
         uses: actions/checkout@v3
 
       # 2. Creates the firebaseConfig.js file using your secret
+      # This file will be consumed by index.html
       - name: Create Firebase Config File
         run: |
-          # This command now creates the config file in the root directory.
           echo 'export const firebaseConfig = ${{ secrets.FIREBASE_CONFIG }};' > firebaseConfig.js
         env:
+          # This environment variable will be populated from your GitHub secret
           FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
 
       # 3. Deploys the content of your project folder to GitHub Pages
@@ -33,6 +34,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # This now publishes from the root directory.
+          # This publishes from the root directory.
           publish_dir: ./
 
