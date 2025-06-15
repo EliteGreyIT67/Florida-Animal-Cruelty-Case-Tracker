@@ -1,0 +1,28 @@
+# Node dependencies
+/node_modules/
+
+# Build artifacts
+/dist/
+/build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE and OS files
+.idea/
+.vscode/
+*.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Firebase credentials (if stored locally - not recommended)
+firebase-credentials.json
+firebase-config.js
+
