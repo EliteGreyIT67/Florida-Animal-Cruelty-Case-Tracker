@@ -165,24 +165,16 @@
 
         // --- FUNCTIONS ---
         
-        async function initializeAppAndData() {
-            const configPlaceholder = `__FIREBASE_CONFIG_PLACEHOLDER__`;
-            let firebaseConfig;
+            
+                async function initializeAppAndData() {
+            // This placeholder is replaced by the GitHub Action during deployment
+            const firebaseConfig = '__FIREBASE_CONFIG_PLACEHOLDER__';
 
-            try {
-                const configStr = configPlaceholder;
-                if (configStr.startsWith('{')) { // Check if it's a JSON object
-                    firebaseConfig = JSON.parse(configStr);
-                }
-            } catch (e) {
-                 console.error("Could not parse Firebase config:", e);
-            }
-
-            if (!firebaseConfig || !firebaseConfig.apiKey) {
+            if (typeof firebaseConfig !== 'object' || !firebaseConfig.apiKey) {
                 loadingSpinner.innerHTML = `
                     <div class="text-red-600 bg-red-100 border border-red-400 rounded-lg p-4 max-w-2xl mx-auto">
                         <h3 class="font-bold text-lg">Configuration Error</h3>
-                        <p class="mt-2">Firebase configuration is missing or invalid. For live deployment, ensure the 'FIREBASE_CONFIG' secret is set correctly in your repository settings and the deployment action has completed successfully.</p>
+                        <p class="mt-2">Firebase configuration is missing or invalid. For a live deployment, please ensure the 'FIREBASE_CONFIG' secret is correctly set in your repository's Actions secrets and that the deployment workflow has run successfully.</p>
                     </div>`;
                 return;
             }
@@ -213,6 +205,8 @@
                 loadingSpinner.innerHTML = '<p class="text-red-500 font-semibold">Error connecting to the database. Please check your Firebase configuration.</p>';
             }
         }
+
+
 
         function setupRealtimeListener() {
             onSnapshot(casesCollection, (snapshot) => {
